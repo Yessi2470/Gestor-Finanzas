@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Finanzas Personales</title>
+</head>
+
+<body>
+
+    <header>
+        <h1>Gestor de Finanzas Personales</h1>
+        <p>Controla tus finanzas de manera sencilla y eficiente.</p>
+    </header>
+
+    <main>
+
+        <section>
+
+            <h2>Historial de Transacciones</h2>
+
+            <form id="formTransaccion">
+
+                <label for="descripcion">Descripción:</label>
+                <input type="text" id="descripcion" name="descripcion" required>
+
+                <label for="monto">Monto:</label>
+                <input type="number" id="monto" min="0.01" step="0.01" required>
+
+                <label for="tipo">Tipo de movimiento:</label>
+                <select id="tipo" name="tipo" required>
+                    <option value="">Seleccione un tipo</option>
+                    <option value="ingreso">Ingreso</option>
+                    <option value="egreso">Egreso</option>
+                </select>
+
+                <label for="categoria">Categoría:</label>
+                <select id="categoria" name="categoria" required>
+                    <option value="">Seleccione una categoría</option>
+                    <option value="Sueldo">Sueldo</option>
+                    <option value="Comida">Comida</option>
+                    <option value="Transporte">Transporte</option>
+                    <option value="Servicios">Servicios</option>
+                    <option value="Otros">Otros</option>
+                </select>
+
+                <button type="submit"> Registrar Transacción</button>
+
+
+            </form>
+
+
+        </section>
+
+        <section>
+            <h2>Resumen de finanzas</h2>
+
+            <article>
+                <h3>Ingresos totales </h3>
+                <p id="totalIngresos">$0</p>
+
+            </article>
+
+            <article>
+                <h3>Gastos totales</h3>
+                <p id="totalGastos">$0</p>
+
+            </article>
+
+            <article>
+                <h3>Balance neto</h3>
+                <p id="balanceNeto">$0</p>
+
+            </article>
+
+
+        </section>
+
+        <section>
+            <h2>Historial de transacciones</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Descripción</th>
+                        <th>Monto</th>
+                        <th>Categoría</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaTransacciones">
+
+                </tbody>
+
+            </table>
+        </section>
+
+        <section>
+            <h2> Resumen por categorías</h2>
+
+            <ul id="resumenCategorias">
+            </ul>
+        </section>
+
+    </main>
+
+    <script type="module" src="index.js"></script>
+
+</body>
+
+</html>
