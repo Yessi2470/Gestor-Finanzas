@@ -2,12 +2,31 @@ import { Transaccion } from './classes/Transaccion.js'
 
 const formulario = document.querySelector("#formTransaccion")
 const tablaTransacciones = document.querySelector("#tablaTransacciones")
-const resumenCategorias = document.querySelector("#resumenCategorias")
+const fechaInput = document.querySelector("#fecha")
 
 const totalIngresosEl = document.querySelector("#totalIngresos")
 const totalGastosEl = document.querySelector("#totalGastos")
 const balanceNetoEl = document.querySelector("#balanceNeto")
 
+const canvasCategorias = document.querySelector("#graficoCategorias")
+const canvasEvolucion = document.querySelector("#graficoFinanzas")
+
+let graficoCategorias = null
+let graficoEvolucion = null
+
+
+function hoy() {
+    return new Date().toLocaleDateString("en-CA")
+}
+
+
+function formatearFecha(fecha) {
+    if (!fecha) return "-"
+    const [anio, mes, dia] = fecha.split("-")
+    return `${dia}/${mes}/${anio}`
+}
+
+fechaInput.value = hoy()
 
 Transaccion.cargar()
 
@@ -16,7 +35,7 @@ Transaccion.obtenerHistorial().forEach(function (transaccion) {
 })
 
 actualizarBalance()
-actualizarResumen()
+actualizarGraficos()
 
 formulario.addEventListener("submit", function (event) {
     event.preventDefault()
@@ -25,34 +44,47 @@ formulario.addEventListener("submit", function (event) {
     const monto = document.querySelector("#monto").value
     const tipo = document.querySelector("#tipo").value
     const categoria = document.querySelector("#categoria").value
+    const fecha = fechaInput.value
 
     const nuevaTransaccion = new Transaccion(
         tipo,
         descripcion,
         monto,
-        categoria
+        categoria,
+        fecha
     )
 
     mostrarTransaccion(nuevaTransaccion)
     actualizarBalance()
-    actualizarResumen()
+    actualizarGraficos()
 
     formulario.reset()
+    fechaInput.value = hoy()
 })
 
 function mostrarTransaccion(transaccion) {
-    const fila = document.createElement("tr");
+    const fila = document.createElement("tr")
+    fila.className = "hover:bg-gray-50"
 
-
-    const colorMonto = transaccion.tipo === "gasto" ? "red" : "green"
+    const esEgreso = transaccion.tipo === "egreso"
+    const claseMonto = esEgreso ? "text-red-600" : "text-green-700"
+    const claseTipo = esEgreso
+        ? "bg-red-100 text-red-700"
+        : "bg-green-100 text-green-700"
 
     fila.innerHTML = `
-        <td>${transaccion.tipo}</td>
-        <td>${transaccion.descripcion}</td>
-        <td style="color: ${colorMonto}">$${Number(transaccion.monto).toFixed(2)}</td>
-        <td>${transaccion.categoria}</td>
-        <td>
-            <button type="button" class="btn-eliminar">
+        <td class="px-4 py-3 whitespace-nowrap">${formatearFecha(transaccion.fecha)}</td>
+        <td class="px-4 py-3">
+            <span class="px-2 py-1 rounded-full text-xs font-medium capitalize ${claseTipo}">
+                ${transaccion.tipo}
+            </span>
+        </td>
+        <td class="px-4 py-3">${transaccion.descripcion}</td>
+        <td class="px-4 py-3 font-medium ${claseMonto}">$${Number(transaccion.monto).toFixed(2)}</td>
+        <td class="px-4 py-3">${transaccion.categoria}</td>
+        <td class="px-4 py-3">
+            <button type="button"
+                class="btn-eliminar text-red-600 hover:text-white hover:bg-red-600 border border-red-600 rounded-md px-3 py-1 text-xs transition-colors">
                 Eliminar
             </button>
         </td>
@@ -64,10 +96,10 @@ function mostrarTransaccion(transaccion) {
         Transaccion.eliminar(transaccion.id)
         fila.remove()
         actualizarBalance()
-        actualizarResumen()
+        actualizarGraficos()
     })
 
-    tablaTransacciones.appendChild(fila);
+    tablaTransacciones.appendChild(fila)
 }
 
 function actualizarBalance() {
@@ -76,18 +108,83 @@ function actualizarBalance() {
     balanceNetoEl.textContent = "$" + Transaccion.balanceNeto().toFixed(2)
 }
 
-function actualizarResumen() {
+function actualizarGraficos() {
+    actualizarGraficoCategorias()
+    actualizarGraficoEvolucion()
+}
+
+function actualizarGraficoCategorias() {
     const resumen = Transaccion.resumenPorCategoria()
+    const etiquetas = Object.keys(resumen)
+    const datos = etiquetas.map((categoria) => resumen[categoria])
 
-    resumenCategorias.innerHTML = ""
+    if (!graficoCategorias) {
+        graficoCategorias = new Chart(canvasCategorias, {
+            type: "bar",
+            data: {
+                labels: etiquetas,
+                datasets: [{
+                    label: "Monto total por categoría ($)",
+                    data: datos,
+                    backgroundColor: "#3b82f6"
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true } }
+            }
+        })
+    } else {
+        graficoCategorias.data.labels = etiquetas
+        graficoCategorias.data.datasets[0].data = datos
+        graficoCategorias.update()
+    }
+}
 
-    Object.keys(resumen).forEach(function (categoria) {
-        const item = document.createElement("li")
-        item.innerHTML = `${categoria}: $${resumen[categoria].toFixed(2)}`
-        resumenCategorias.appendChild(item)
-    })
+function actualizarGraficoEvolucion() {
+    const evolucion = Transaccion.evolucionTemporal()
+    const etiquetas = evolucion.fechas.map(formatearFecha)
 
-    if (Object.keys(resumen).length === 0) {
-        resumenCategorias.innerHTML = `<li>Todavía no hay movimientos.</li>`
+    if (!graficoEvolucion) {
+        graficoEvolucion = new Chart(canvasEvolucion, {
+            type: "line",
+            data: {
+                labels: etiquetas,
+                datasets: [
+                    {
+                        label: "Ingresos",
+                        data: evolucion.ingresos,
+                        borderColor: "#16a34a",
+                        backgroundColor: "#16a34a",
+                        tension: 0.2
+                    },
+                    {
+                        label: "Egresos",
+                        data: evolucion.egresos,
+                        borderColor: "#dc2626",
+                        backgroundColor: "#dc2626",
+                        tension: 0.2
+                    },
+                    {
+                        label: "Balance neto",
+                        data: evolucion.neto,
+                        borderColor: "#2563eb",
+                        backgroundColor: "#2563eb",
+                        tension: 0.2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        })
+    } else {
+        graficoEvolucion.data.labels = etiquetas
+        graficoEvolucion.data.datasets[0].data = evolucion.ingresos
+        graficoEvolucion.data.datasets[1].data = evolucion.egresos
+        graficoEvolucion.data.datasets[2].data = evolucion.neto
+        graficoEvolucion.update()
     }
 }
